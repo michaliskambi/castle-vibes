@@ -56,3 +56,21 @@ castle-engine clean
 - **WASD** - Move forward/backward/strafe left/right
 - **Mouse** - Look around (click on window first to capture mouse)
 - **Escape** - Release mouse / exit
+
+## What the Project Has
+
+- A green ground plane (100x100) you can walk on
+- Three colored box primitives as landmarks:
+  - Red box (2x2x2) at position (5, 1, -5)
+  - Blue box (1.5x3x1.5) at position (-4, 1.5, -8)
+  - Yellow box (3x1x3) at position (-7, 0.5, 3)
+- First-person walk navigation (TCastleWalkNavigation, move speed 10)
+- Directional light illuminating the scene
+- FPS counter label in the top-right corner
+
+## How This Project Was Created
+
+1. Scaffolded with `castle-engine create empty` which generates the template with TCastleView, FPS label, and standard project structure
+2. Edited `data/gameviewmain.castle-user-interface` (JSON design file) to add the 3D viewport with TCastleWalkNavigation, TCastlePlane ground, three TCastleBox landmarks, TCastleCamera at eye level, and TCastleDirectionalLight
+3. The Pascal code (`code/gameviewmain.pas`) was kept as-is from the template — it loads the design file and updates the FPS label each frame
+4. Compiled with `castle-engine compile` and verified working with `castle-engine run`
