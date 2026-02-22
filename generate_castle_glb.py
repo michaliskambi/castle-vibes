@@ -41,6 +41,7 @@ class GltfBuilder:
         self.textures = []
         self.images = []
         self.samplers = []
+        self.animations = []
 
     def _align4(self):
         padding = (4 - len(self.buffer) % 4) % 4
@@ -110,6 +111,23 @@ class GltfBuilder:
         self.materials.append(mat)
         return idx
 
+    def add_color_material(self, name, color_rgba, metallic=0.0, roughness=0.85,
+                           emissive=None):
+        """Material with a flat color (no texture). color_rgba is [r, g, b, a]."""
+        pbr = {
+            "baseColorFactor": list(color_rgba),
+            "metallicFactor": metallic,
+            "roughnessFactor": roughness,
+        }
+        mat = {"name": name, "pbrMetallicRoughness": pbr}
+        if color_rgba[3] < 1.0:
+            mat["alphaMode"] = "BLEND"
+        if emissive:
+            mat["emissiveFactor"] = list(emissive)
+        idx = len(self.materials)
+        self.materials.append(mat)
+        return idx
+
     def add_mesh(self, positions, normals, uvs, indices, material_index):
         positions = [float(v) for v in positions]
         normals = [float(v) for v in normals]
@@ -147,36 +165,99 @@ class GltfBuilder:
         self.meshes.append(mesh)
         return idx
 
-    def add_node(self, mesh_index=None, name=None, translation=None, children=None):
+    def add_node(self, mesh_index=None, name=None, translation=None,
+                 rotation=None, scale=None, children=None):
         node = {}
         if mesh_index is not None:
             node["mesh"] = mesh_index
         if name:
             node["name"] = name
         if translation:
-            node["translation"] = translation
+            node["translation"] = list(translation)
+        if rotation:
+            node["rotation"] = list(rotation)
+        if scale:
+            node["scale"] = list(scale)
         if children:
-            node["children"] = children
+            node["children"] = list(children)
         idx = len(self.nodes)
         self.nodes.append(node)
         return idx
 
-    def build_glb(self):
+    def add_animation(self, name, channels_data):
+        """Add a glTF animation.
+
+        channels_data: list of dicts with keys:
+          - 'node': node index
+          - 'path': 'translation', 'rotation', or 'scale'
+          - 'times': list of float keyframe times
+          - 'values': list of float keyframe values (flattened)
+        """
+        anim_samplers = []
+        channels = []
+        for ch in channels_data:
+            times = ch['times']
+            values = ch['values']
+            path = ch['path']
+
+            # Time accessor (SCALAR)
+            time_data = struct.pack('<' + 'f' * len(times), *times)
+            time_bv = self.add_buffer_view(time_data)  # no GPU target
+            time_acc = self.add_accessor(time_bv, FLOAT, len(times), "SCALAR",
+                                         [min(times)], [max(times)])
+
+            # Value accessor
+            if path == 'rotation':
+                type_str = "VEC4"
+                count = len(values) // 4
+            else:  # translation or scale
+                type_str = "VEC3"
+                count = len(values) // 3
+
+            val_data = struct.pack('<' + 'f' * len(values), *values)
+            val_bv = self.add_buffer_view(val_data)  # no GPU target
+            val_acc = self.add_accessor(val_bv, FLOAT, count, type_str)
+
+            sampler_idx = len(anim_samplers)
+            anim_samplers.append({
+                "input": time_acc,
+                "output": val_acc,
+                "interpolation": "LINEAR"
+            })
+            channels.append({
+                "sampler": sampler_idx,
+                "target": {"node": ch['node'], "path": path}
+            })
+
+        self.animations.append({
+            "name": name,
+            "samplers": anim_samplers,
+            "channels": channels
+        })
+
+    def build_glb(self, root_nodes=None):
         self._align4()
+        if root_nodes is None:
+            root_nodes = list(range(len(self.nodes)))
         gltf = {
             "asset": {"version": "2.0", "generator": "castle_builder.py"},
             "scene": 0,
-            "scenes": [{"nodes": list(range(len(self.nodes)))}],
+            "scenes": [{"nodes": root_nodes}],
             "nodes": self.nodes,
             "meshes": self.meshes,
             "accessors": self.accessors,
             "bufferViews": self.buffer_views,
             "buffers": [{"byteLength": len(self.buffer)}],
             "materials": self.materials,
-            "textures": self.textures,
-            "images": self.images,
-            "samplers": self.samplers,
         }
+        if self.textures:
+            gltf["textures"] = self.textures
+        if self.images:
+            gltf["images"] = self.images
+        if self.samplers:
+            gltf["samplers"] = self.samplers
+        if self.animations:
+            gltf["animations"] = self.animations
         json_str = json.dumps(gltf, separators=(',', ':'))
         json_bytes = json_str.encode('utf-8')
         json_pad = (4 - len(json_bytes) % 4) % 4
@@ -672,6 +753,25 @@ def generate_terrain_mesh(size=500, resolution=120, castle_radius=40):
             if abs(wx) < 8 and wz > 0:
                 path_factor = max(0, 1.0 - abs(wx) / 8)
                 heights[gz][gx] *= (1.0 - path_factor * 0.85)
+
+    # River valley (river at X ~= 80, running along Z)
+    river_x = 80.0
+    river_half_w = 8.0
+    river_bank_w = 12.0
+    for gz in range(resolution + 1):
+        for gx in range(resolution + 1):
+            wx = -half + gx * step
+            dist_from_river = abs(wx - river_x)
+            if dist_from_river < river_half_w:
+                # Depress to river bed level
+                t = dist_from_river / river_half_w
+                depression = 2.5 * (1.0 - t * t)
+                heights[gz][gx] -= depression
+            elif dist_from_river < river_half_w + river_bank_w:
+                # Gradual bank slope
+                t = (dist_from_river - river_half_w) / river_bank_w
+                depression = 0.5 * (1.0 - t)
+                heights[gz][gx] -= depression
 
     # Clamp minimum height so terrain doesn't go below 0
     for gz in range(resolution + 1):
@@ -1212,6 +1312,229 @@ def build_castle():
     return parts
 
 
+def generate_simple_model(parts_spec, output_path):
+    """Build a simple model from colored box/cylinder parts.
+
+    parts_spec: list of (geom_func, color_rgba) or
+                list of (geom_func, color_rgba, emissive)
+    """
+    builder = GltfBuilder()
+    for i, spec in enumerate(parts_spec):
+        if len(spec) == 3:
+            geom, color, emissive = spec
+        else:
+            geom, color = spec
+            emissive = None
+        mat_idx = builder.add_color_material(f"mat_{i}", color, emissive=emissive)
+        positions, normals, uvs, indices = geom
+        mesh_idx = builder.add_mesh(positions, normals, uvs, indices, mat_idx)
+        builder.add_node(mesh_idx, name=f"part_{i}")
+
+    glb_data = builder.build_glb()
+    with open(output_path, 'wb') as f:
+        f.write(glb_data)
+    print(f"Written {len(glb_data)} bytes to {output_path}")
+
+
+def generate_goblin_glb(output_path):
+    """Generate an animated goblin model with hierarchical node tree.
+
+    Animations: idle, move, die, hurt (matching TCastleMoveAttack defaults).
+    """
+    builder = GltfBuilder()
+
+    # Materials
+    green_skin = [0.25, 0.55, 0.15, 1.0]
+    dark_green = [0.18, 0.42, 0.10, 1.0]
+    dark_cloth = [0.25, 0.18, 0.1, 1.0]
+    dark_gray = [0.3, 0.3, 0.3, 1.0]
+    eye_yellow = [0.9, 0.8, 0.1, 1.0]
+
+    skin_mat = builder.add_color_material("skin", green_skin)
+    dark_mat = builder.add_color_material("dark_skin", dark_green)
+    cloth_mat = builder.add_color_material("cloth", dark_cloth)
+    weapon_mat = builder.add_color_material("weapon", dark_gray)
+    eye_mat = builder.add_color_material("eye", eye_yellow)
+
+    # Create meshes (geometry at local origin for each part)
+    body_mesh = builder.add_mesh(*generate_box(0.4, 0.5, 0.25, (0, 0, 0)), cloth_mat)
+    head_mesh = builder.add_mesh(*generate_cylinder(0.15, 0.28, 12, (0, 0, 0)), skin_mat)
+    eye_mesh = builder.add_mesh(*generate_box(0.05, 0.06, 0.04, (0, 0, 0)), eye_mat)
+    arm_mesh = builder.add_mesh(*generate_cylinder(0.06, 0.4, 8, (0, 0, 0)), dark_mat)
+    leg_mesh = builder.add_mesh(*generate_cylinder(0.07, 0.35, 8, (0, 0, 0)), dark_mat)
+    club_mesh = builder.add_mesh(*generate_box(0.06, 0.5, 0.06, (0, 0, 0)), weapon_mat)
+
+    # Build node hierarchy (leaf nodes first, then parents with children)
+    left_eye = builder.add_node(eye_mesh, "left_eye", translation=[-0.08, 0.12, 0.14])
+    right_eye = builder.add_node(eye_mesh, "right_eye", translation=[0.08, 0.12, 0.14])
+
+    head_node = builder.add_node(head_mesh, "head", translation=[0, 0.38, 0],
+                                  children=[left_eye, right_eye])
+    left_arm = builder.add_node(arm_mesh, "left_arm", translation=[-0.28, -0.05, 0])
+    right_arm = builder.add_node(arm_mesh, "right_arm", translation=[0.28, -0.05, 0])
+    club_node = builder.add_node(club_mesh, "club", translation=[0.33, -0.1, 0.15])
+
+    body_node = builder.add_node(body_mesh, "body", translation=[0, 0.55, 0],
+                                  children=[head_node, left_arm, right_arm, club_node])
+
+    left_leg = builder.add_node(leg_mesh, "left_leg", translation=[-0.12, 0.0, 0])
+    right_leg = builder.add_node(leg_mesh, "right_leg", translation=[0.12, 0.0, 0])
+
+    root_node = builder.add_node(name="Goblin",
+                                  children=[body_node, left_leg, right_leg])
+
+    # --- Animations ---
+
+    # Quaternion helpers: rotation around X axis
+    # q = [sin(a/2), 0, 0, cos(a/2)] for rotation around X
+    import math as m
+    def qx(deg):
+        r = m.radians(deg)
+        return [m.sin(r/2), 0, 0, m.cos(r/2)]
+    qi = [0, 0, 0, 1]  # identity quaternion
+
+    # "idle" (2s loop): body bobs up and down
+    builder.add_animation("idle", [{
+        'node': body_node,
+        'path': 'translation',
+        'times': [0.0, 1.0, 2.0],
+        'values': [
+            0, 0.55, 0,
+            0, 0.60, 0,
+            0, 0.55, 0,
+        ],
+    }])
+
+    # "move" (0.8s loop): legs swing + body bob
+    q_fwd = qx(30)
+    q_back = qx(-30)
+    builder.add_animation("move", [
+        {   # Left leg swings forward/back
+            'node': left_leg,
+            'path': 'rotation',
+            'times': [0.0, 0.2, 0.4, 0.6, 0.8],
+            'values': qi + q_fwd + qi + q_back + qi,
+        },
+        {   # Right leg opposite phase
+            'node': right_leg,
+            'path': 'rotation',
+            'times': [0.0, 0.2, 0.4, 0.6, 0.8],
+            'values': qi + q_back + qi + q_fwd + qi,
+        },
+        {   # Body bob during walk
+            'node': body_node,
+            'path': 'translation',
+            'times': [0.0, 0.2, 0.4, 0.6, 0.8],
+            'values': [
+                0, 0.55, 0,
+                0, 0.58, 0,
+                0, 0.55, 0,
+                0, 0.58, 0,
+                0, 0.55, 0,
+            ],
+        },
+    ])
+
+    # "die" (1.0s): fall backward (root rotates -90deg around X)
+    q_tilt1 = qx(-15)
+    q_tilt2 = qx(-75)
+    q_flat = qx(-90)
+    builder.add_animation("die", [{
+        'node': root_node,
+        'path': 'rotation',
+        'times': [0.0, 0.3, 0.7, 1.0],
+        'values': qi + q_tilt1 + q_tilt2 + q_flat,
+    }])
+
+    # "hurt" (0.3s): body jolts backward in Z then returns
+    builder.add_animation("hurt", [{
+        'node': body_node,
+        'path': 'translation',
+        'times': [0.0, 0.1, 0.2, 0.3],
+        'values': [
+            0, 0.55, 0,
+            0, 0.55, -0.12,
+            0, 0.55, 0.04,
+            0, 0.55, 0,
+        ],
+    }])
+
+    glb_data = builder.build_glb(root_nodes=[root_node])
+    with open(output_path, 'wb') as f:
+        f.write(glb_data)
+    print(f"Written {len(glb_data)} bytes to {output_path}")
+
+
+def generate_grail_glb(output_path):
+    """Generate a golden grail trophy model."""
+    gold = [0.85, 0.65, 0.13, 1.0]
+    gold_emissive = [0.3, 0.2, 0.05]
+
+    parts = [
+        # Base (flat cylinder)
+        (generate_cylinder(0.25, 0.05, 16, (0, 0, 0)), gold, gold_emissive),
+        # Stem (thin cylinder)
+        (generate_cylinder(0.06, 0.3, 8, (0, 0.05, 0)), gold, gold_emissive),
+        # Cup bowl (wider cylinder)
+        (generate_cylinder(0.2, 0.25, 16, (0, 0.35, 0)), gold, gold_emissive),
+        # Cup rim (slightly wider thin cylinder)
+        (generate_cylinder(0.23, 0.03, 16, (0, 0.6, 0)), gold, gold_emissive),
+    ]
+    generate_simple_model(parts, output_path)
+
+
+def generate_npc_glb(output_path):
+    """Generate a simple NPC model (~1.7m tall human figure)."""
+    skin_tone = [0.85, 0.7, 0.55, 1.0]
+    brown_tunic = [0.45, 0.3, 0.15, 1.0]
+    dark_pants = [0.2, 0.18, 0.15, 1.0]
+    hair_color = [0.25, 0.15, 0.08, 1.0]
+
+    parts = [
+        # Torso
+        (generate_box(0.5, 0.65, 0.3, (0, 1.0, 0)), brown_tunic),
+        # Head
+        (generate_box(0.28, 0.3, 0.28, (0, 1.55, 0)), skin_tone),
+        # Hair (slightly larger box on top of head)
+        (generate_box(0.3, 0.12, 0.3, (0, 1.76, 0)), hair_color),
+        # Left arm
+        (generate_box(0.12, 0.55, 0.12, (-0.36, 1.0, 0)), skin_tone),
+        # Right arm
+        (generate_box(0.12, 0.55, 0.12, (0.36, 1.0, 0)), skin_tone),
+        # Left leg
+        (generate_box(0.14, 0.5, 0.14, (-0.14, 0.25, 0)), dark_pants),
+        # Right leg
+        (generate_box(0.14, 0.5, 0.14, (0.14, 0.25, 0)), dark_pants),
+    ]
+    generate_simple_model(parts, output_path)
+
+
+def generate_campfire_glb(output_path):
+    """Generate a simple campfire (ring of stones + flame)."""
+    stone_gray = [0.4, 0.38, 0.35, 1.0]
+    flame_orange = [1.0, 0.6, 0.1, 0.9]
+    flame_emissive = [2.0, 1.2, 0.3]
+    log_brown = [0.35, 0.2, 0.1, 1.0]
+
+    parts = []
+    # Ring of stones
+    n_stones = 8
+    for i in range(n_stones):
+        angle = 2 * math.pi * i / n_stones
+        sx = 0.7 * math.cos(angle)
+        sz = 0.7 * math.sin(angle)
+        parts.append((generate_box(0.25, 0.2, 0.25, (sx, 0.1, sz)), stone_gray))
+
+    # Logs (crossed)
+    parts.append((generate_box(0.1, 0.08, 0.8, (0, 0.12, 0)), log_brown))
+    parts.append((generate_box(0.8, 0.08, 0.1, (0, 0.16, 0)), log_brown))
+
+    # Flame (cone shape, emissive)
+    parts.append((generate_cone(0.3, 0.8, 8, (0, 0.2, 0)), flame_orange, flame_emissive))
+
+    generate_simple_model(parts, output_path)
+
+
 def main():
     print("Generating textures...")
     stone_tex = generate_stone_texture()
@@ -1270,6 +1593,22 @@ def main():
     with open(output_path, 'wb') as f:
         f.write(glb_data)
     print(f"Written {len(glb_data)} bytes to {output_path}")
+
+    data_dir = os.path.join(os.path.dirname(__file__), 'data')
+
+    print("Generating goblin model...")
+    generate_goblin_glb(os.path.join(data_dir, 'goblin.glb'))
+
+    print("Generating NPC model...")
+    generate_npc_glb(os.path.join(data_dir, 'npc.glb'))
+
+    print("Generating campfire model...")
+    generate_campfire_glb(os.path.join(data_dir, 'campfire.glb'))
+
+    print("Generating grail model...")
+    generate_grail_glb(os.path.join(data_dir, 'grail.glb'))
+
+    print("Done!")
 
 
 if __name__ == '__main__':

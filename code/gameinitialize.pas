@@ -16,7 +16,8 @@ uses SysUtils,
   {$region 'Castle Initialization Uses'}
   // The content here may be automatically updated by CGE editor.
   , GameViewMain
-  {$endregion 'Castle Initialization Uses'};
+  {$endregion 'Castle Initialization Uses'}
+  , GameViewDialog, GameViewTitle, GameDialog, GameQuests, GameNpcs;
 
 var
   Window: TCastleWindow;
@@ -27,13 +28,19 @@ begin
   { Adjust container settings for a scalable UI (adjusts to any window size in a smart way). }
   Window.Container.LoadSettings('castle-data:/CastleSettings.xml');
 
+  { Initialize game systems }
+  InitDialogs;
+  QuestManager := TQuestManager.Create;
+
   { Create views (see https://castle-engine.io/views ). }
   {$region 'Castle View Creation'}
   // The content here may be automatically updated by CGE editor.
   ViewMain := TViewMain.Create(Application);
   {$endregion 'Castle View Creation'}
+  ViewDialog := TViewDialog.Create(Application);
+  ViewTitle := TViewTitle.Create(Application);
 
-  Window.Container.View := ViewMain;
+  Window.Container.View := ViewTitle;
 end;
 
 initialization

@@ -1,83 +1,689 @@
 {
-  "$$ClassName" : "TCastleUserInterface",
-  "FullSize" : true,
-  "Name" : "RootGroup",
-  "$Children" : [
+  "$$ClassName": "TCastleUserInterface",
+  "FullSize": true,
+  "Name": "RootGroup",
+  "$Children": [
     {
-      "$$ClassName" : "TCastleViewport",
-      "Camera" : "Camera1",
-      "FullSize" : true,
-      "Items" : {
-        "$$ClassName" : "TCastleRootTransform",
-        "PhysicsProperties" : {
-          "$$ClassName" : "TPhysicsProperties"
+      "$$ClassName": "TCastleViewport",
+      "Background": "WinterBackground",
+      "Camera": "Camera1",
+      "Fog": "WinterFog",
+      "FullSize": true,
+      "$NonVisualComponents": [
+        {
+          "$$ClassName": "TCastleBackground",
+          "Name": "WinterBackground",
+          "SkyTopColorPersistent": {
+            "$$ClassName": "TCastleColorRGBPersistent",
+            "Red": 0.25,
+            "Green": 0.3,
+            "Blue": 0.45
+          },
+          "SkyEquatorColorPersistent": {
+            "$$ClassName": "TCastleColorRGBPersistent",
+            "Red": 0.7,
+            "Green": 0.72,
+            "Blue": 0.75
+          },
+          "GroundBottomColorPersistent": {
+            "$$ClassName": "TCastleColorRGBPersistent",
+            "Red": 0.8,
+            "Green": 0.82,
+            "Blue": 0.85
+          },
+          "GroundEquatorColorPersistent": {
+            "$$ClassName": "TCastleColorRGBPersistent",
+            "Red": 0.75,
+            "Green": 0.77,
+            "Blue": 0.8
+          }
         },
-        "$Children" : [
+        {
+          "$$ClassName": "TCastleFog",
+          "Name": "WinterFog",
+          "FogType": "ftLinear",
+          "VisibilityRange": 180.0,
+          "ColorPersistent": {
+            "$$ClassName": "TCastleColorRGBPersistent",
+            "Red": 0.7,
+            "Green": 0.72,
+            "Blue": 0.75
+          }
+        }
+      ],
+      "Items": {
+        "$$ClassName": "TCastleRootTransform",
+        "PhysicsProperties": {
+          "$$ClassName": "TPhysicsProperties"
+        },
+        "$Children": [
           {
-            "$$ClassName" : "TCastleCamera",
-            "Name" : "Camera1",
-            "TranslationPersistent" : {
-              "$$ClassName" : "TCastleVector3Persistent",
-              "X" : 0.0000000000000000E+000,
-              "Y" : 1.8000000000000000E+000,
-              "Z" : 3.5000000000000000E+001
+            "$$ClassName": "TCastleCamera",
+            "Name": "Camera1",
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 0.0,
+              "Y": 1.8,
+              "Z": 35.0
+            },
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "Name": "PlayerLiving"
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleDirectionalLight",
+            "Name": "DirectionalLight1",
+            "Intensity": 0.8,
+            "RotationPersistent": {
+              "$$ClassName": "TCastleVector4RotationPersistent",
+              "W": 1.0,
+              "X": -1.0
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "Y": 10.0
             }
           },
           {
-            "$$ClassName" : "TCastleDirectionalLight",
-            "Name" : "DirectionalLight1",
-            "RotationPersistent" : {
-              "$$ClassName" : "TCastleVector4RotationPersistent",
-              "W" : 1.0000000000000000E+000,
-              "X" : -1.0000000000000000E+000
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneCastle",
+            "PreciseCollisions": true,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
             },
-            "TranslationPersistent" : {
-              "$$ClassName" : "TCastleVector3Persistent",
-              "Y" : 1.0000000000000000E+001
+            "Url": "castle-data:/castle.glb"
+          },
+          {
+            "$$ClassName": "TCastlePlane",
+            "Name": "RiverPlane",
+            "Axis": 1,
+            "Collides": false,
+            "DoubleSided": true,
+            "Material": "pmPhysical",
+            "Pickable": false,
+            "SizePersistent": {
+              "$$ClassName": "TCastleVector2Persistent",
+              "X": 12.0,
+              "Y": 400.0
+            },
+            "ColorPersistent": {
+              "$$ClassName": "TCastleColorPersistent",
+              "Red": 0.15,
+              "Green": 0.35,
+              "Blue": 0.7,
+              "Alpha": 0.55
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 80.0,
+              "Y": -1.5,
+              "Z": 0.0
             }
           },
           {
-            "$$ClassName" : "TCastleScene",
-            "Name" : "SceneCastle",
-            "PreciseCollisions" : true,
-            "RenderOptions" : {
-              "$$ClassName" : "TCastleScene.TSceneRenderOptions"
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneCampfire",
+            "PreciseCollisions": true,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
             },
-            "Url" : "castle-data:/castle.glb"
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 3.0,
+              "Y": 3.0,
+              "Z": 3.0
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 15.0,
+              "Y": 0.0,
+              "Z": 35.0
+            },
+            "Url": "castle-data:/campfire.glb"
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneNpc1",
+            "PreciseCollisions": true,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.0,
+              "Y": 2.0,
+              "Z": 2.0
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 13.5,
+              "Y": 0.0,
+              "Z": 36.5
+            },
+            "Url": "castle-data:/npc.glb"
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneNpc2",
+            "PreciseCollisions": true,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "RotationPersistent": {
+              "$$ClassName": "TCastleVector4RotationPersistent",
+              "W": 3.141592653589793,
+              "Y": 1.0
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 16.5,
+              "Y": 0.0,
+              "Z": 33.5
+            },
+            "Url": "castle-data:/npc.glb"
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin1",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 40.0,
+              "Y": 1.2,
+              "Z": 10.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving1"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack1",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin2",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": -35.0,
+              "Y": 0.5,
+              "Z": 20.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving2"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack2",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin3",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 50.0,
+              "Y": 0.0,
+              "Z": -30.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving3"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack3",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin4",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": -45.0,
+              "Y": 5.8,
+              "Z": -25.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving4"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack4",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin5",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 30.0,
+              "Y": 2.6,
+              "Z": 50.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving5"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack5",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin6",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": -20.0,
+              "Y": 2.5,
+              "Z": -50.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving6"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack6",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin7",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 60.0,
+              "Y": 5.6,
+              "Z": 30.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving7"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack7",
+                "PreferredDistance": 2.5
+              }
+            ]
+          },
+          {
+            "$$ClassName": "TCastleScene",
+            "Name": "SceneGoblin8",
+            "CollisionSphereRadius": 0.8,
+            "RenderOptions": {
+              "$$ClassName": "TCastleScene.TSceneRenderOptions"
+            },
+            "ScalePersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": 2.5,
+              "Y": 2.5,
+              "Z": 2.5
+            },
+            "TranslationPersistent": {
+              "$$ClassName": "TCastleVector3Persistent",
+              "X": -55.0,
+              "Y": 0.6,
+              "Z": 40.0
+            },
+            "Url": "castle-data:/goblin.glb",
+            "$Behaviors": [
+              {
+                "$$ClassName": "TCastleLiving",
+                "MaxLife": 50.0,
+                "Name": "GoblinLiving8"
+              },
+              {
+                "$$ClassName": "TCastleMoveAttack",
+                "AttackDamage": {
+                  "$$ClassName": "TCastleDamage",
+                  "DamageConst": 5.0,
+                  "DamageRandom": 5.0
+                },
+                "AttackMaxDistance": 3.0,
+                "AttackTime": 0.5,
+                "Enemy": "PlayerLiving",
+                "MoveSpeed": 4.0,
+                "Name": "MoveAttack8",
+                "PreferredDistance": 2.5
+              }
+            ]
           }
         ]
       },
-      "Name" : "MainViewport",
-      "$Children" : [
+      "Name": "MainViewport",
+      "$Children": [
         {
-          "$$ClassName" : "TCastleWalkNavigation",
-          "MoveSpeed" : 1.0000000000000000E+001,
-          "Name" : "WalkNavigation"
+          "$$ClassName": "TCastleWalkNavigation",
+          "MoveSpeed": 10.0,
+          "Name": "WalkNavigation",
+          "MouseLook": true
+        },
+        {
+          "$$ClassName": "TCastleFlashEffect",
+          "Name": "PlayerHurtFlash"
         }
       ]
     },
     {
-      "$$ClassName" : "TCastleLabel",
-      "ColorPersistent" : {
-        "$$ClassName" : "TCastleColorPersistent",
-        "Blue" : 1.7647059261798859E-001,
-        "Green" : 6.1176472902297974E-001,
-        "Red" : 9.8823529481887817E-001
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Blue": 0.1764705926179886,
+        "Green": 0.6117647290229797,
+        "Red": 0.9882352948188782
       },
-      "FontSize" : 2.0000000000000000E+001,
-      "HorizontalAnchorParent" : "hpRight",
-      "HorizontalAnchorSelf" : "hpRight",
-      "Name" : "LabelFps",
-      "Text" : [
+      "FontSize": 20.0,
+      "HorizontalAnchorParent": "hpRight",
+      "HorizontalAnchorSelf": "hpRight",
+      "Name": "LabelFps",
+      "Text": [
         "FPS: xxx"
       ],
-      "TranslationPersistent" : {
-        "$$ClassName" : "TCastleVector2Persistent",
-        "X" : -2.0000000000000000E+001,
-        "Y" : -2.0000000000000000E+001
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "X": -20.0,
+        "Y": -20.0
       },
-      "VerticalAnchorParent" : "vpTop",
-      "VerticalAnchorSelf" : "vpTop"
+      "VerticalAnchorParent": "vpTop",
+      "VerticalAnchorSelf": "vpTop"
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 0.9,
+        "Green": 0.2,
+        "Blue": 0.2
+      },
+      "FontSize": 24.0,
+      "Name": "LabelPlayerLife",
+      "Text": [
+        "Life: 100"
+      ],
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "X": 15.0,
+        "Y": -15.0
+      },
+      "VerticalAnchorParent": "vpTop",
+      "VerticalAnchorSelf": "vpTop"
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 1.0,
+        "Green": 0.95,
+        "Blue": 0.6
+      },
+      "FontSize": 20.0,
+      "Name": "LabelQuest",
+      "Text": [
+        "Talk to the NPCs at the campfire."
+      ],
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "X": 15.0,
+        "Y": -45.0
+      },
+      "VerticalAnchorParent": "vpTop",
+      "VerticalAnchorSelf": "vpTop"
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 1.0,
+        "Green": 1.0,
+        "Blue": 1.0
+      },
+      "FontSize": 22.0,
+      "HorizontalAnchorParent": "hpMiddle",
+      "HorizontalAnchorSelf": "hpMiddle",
+      "Name": "LabelTalkHint",
+      "Text": [
+        "Press E to talk"
+      ],
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "Y": 80.0
+      }
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 0.3,
+        "Green": 1.0,
+        "Blue": 0.3
+      },
+      "FontSize": 24.0,
+      "HorizontalAnchorParent": "hpMiddle",
+      "HorizontalAnchorSelf": "hpMiddle",
+      "Name": "LabelNotification",
+      "Text": [
+        ""
+      ],
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "Y": 120.0
+      }
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 0.8,
+        "Green": 0.8,
+        "Blue": 0.8
+      },
+      "FontSize": 16.0,
+      "HorizontalAnchorParent": "hpMiddle",
+      "HorizontalAnchorSelf": "hpMiddle",
+      "Name": "LabelMouseLook",
+      "Text": [
+        "Press Escape or Right-Click to toggle mouse look"
+      ],
+      "TranslationPersistent": {
+        "$$ClassName": "TCastleVector2Persistent",
+        "Y": 30.0
+      }
+    },
+    {
+      "$$ClassName": "TCastleLabel",
+      "ColorPersistent": {
+        "$$ClassName": "TCastleColorPersistent",
+        "Red": 1.0,
+        "Green": 0.85,
+        "Blue": 0.0
+      },
+      "Exists": false,
+      "FontSize": 48.0,
+      "HorizontalAnchorParent": "hpMiddle",
+      "HorizontalAnchorSelf": "hpMiddle",
+      "VerticalAnchorParent": "vpMiddle",
+      "VerticalAnchorSelf": "vpMiddle",
+      "Name": "LabelQuestCompleted",
+      "Text": [
+        "QUEST COMPLETED!"
+      ]
+    },
+    {
+      "$$ClassName": "TCastleCrosshair",
+      "Name": "Crosshair1"
     }
   ]
 }
