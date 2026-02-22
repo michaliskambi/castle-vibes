@@ -20,6 +20,9 @@ __history
 # Auto-updated by Delphi IDE, unused for now (we use castle-auto-generated-resources.res)
 /empty_standalone.res
 
+# Python
+__pycache__/
+
 # Blender
 *.blend?
 
