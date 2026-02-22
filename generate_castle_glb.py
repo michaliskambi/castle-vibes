@@ -585,9 +585,203 @@ def add_building(parts, x, z, base_y, w, h, d, roof_h):
     parts['roof'].append(generate_wedge_roof(w, d, roof_h, (x, base_y + h, z)))
 
 
+def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
+    """Generate a terrain heightmap mesh with gentle hills, flat near the castle."""
+    rng = random.Random(123)
+    half = size / 2
+    step = size / resolution
+
+    # Generate heightmap
+    heights = [[0.0] * (resolution + 1) for _ in range(resolution + 1)]
+
+    # Add random hills
+    for _ in range(40):
+        cx = rng.uniform(-half, half)
+        cz = rng.uniform(-half, half)
+        bump_r = rng.uniform(30, 80)
+        bump_h = rng.uniform(2, 8)
+        for gz in range(resolution + 1):
+            for gx in range(resolution + 1):
+                wx = -half + gx * step
+                wz = -half + gz * step
+                dx, dz = wx - cx, wz - cz
+                dist2 = dx*dx + dz*dz
+                if dist2 < bump_r * bump_r:
+                    falloff = 1.0 - dist2 / (bump_r * bump_r)
+                    heights[gz][gx] += bump_h * falloff * falloff
+
+    # Flatten near the castle center and the approach path
+    for gz in range(resolution + 1):
+        for gx in range(resolution + 1):
+            wx = -half + gx * step
+            wz = -half + gz * step
+            dist = math.sqrt(wx*wx + wz*wz)
+            if dist < castle_radius:
+                # Smooth transition to flat
+                t = dist / castle_radius
+                t = max(0, min(1, (t - 0.5) * 2))  # ramp from 0.5r to r
+                heights[gz][gx] *= t * t
+            # Also flatten the approach path (south, positive Z)
+            if abs(wx) < 8 and wz > 0:
+                path_factor = max(0, 1.0 - abs(wx) / 8)
+                heights[gz][gx] *= (1.0 - path_factor * 0.8)
+
+    # Smooth pass
+    for _ in range(3):
+        new_h = [[0.0] * (resolution + 1) for _ in range(resolution + 1)]
+        for gz in range(resolution + 1):
+            for gx in range(resolution + 1):
+                total, count = heights[gz][gx], 1
+                for dz2, dx2 in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nz, nx = gz + dz2, gx + dx2
+                    if 0 <= nz <= resolution and 0 <= nx <= resolution:
+                        total += heights[nz][nx]
+                        count += 1
+                new_h[gz][gx] = total / count
+        heights = new_h
+
+    # Build mesh
+    positions, normals, uvs, indices = [], [], [], []
+
+    for gz in range(resolution + 1):
+        for gx in range(resolution + 1):
+            wx = -half + gx * step
+            wz = -half + gz * step
+            wy = heights[gz][gx]
+            positions.extend([wx, wy, wz])
+            uvs.extend([wx * TEXTURE_SCALE, wz * TEXTURE_SCALE])
+
+    # Compute normals per vertex (average of adjacent face normals)
+    vertex_normals = [[0.0, 0.0, 0.0] for _ in range((resolution+1)*(resolution+1))]
+    for gz in range(resolution):
+        for gx in range(resolution):
+            i00 = gz * (resolution + 1) + gx
+            i10 = i00 + 1
+            i01 = i00 + (resolution + 1)
+            i11 = i01 + 1
+
+            # Triangle 1: i00, i01, i10
+            p0 = positions[i00*3:i00*3+3]
+            p1 = positions[i01*3:i01*3+3]
+            p2 = positions[i10*3:i10*3+3]
+            e1 = [p1[j]-p0[j] for j in range(3)]
+            e2 = [p2[j]-p0[j] for j in range(3)]
+            n = [e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]]
+            for vi in [i00, i01, i10]:
+                for j in range(3):
+                    vertex_normals[vi][j] += n[j]
+
+            # Triangle 2: i10, i01, i11
+            p0 = positions[i10*3:i10*3+3]
+            p1 = positions[i01*3:i01*3+3]
+            p2 = positions[i11*3:i11*3+3]
+            e1 = [p1[j]-p0[j] for j in range(3)]
+            e2 = [p2[j]-p0[j] for j in range(3)]
+            n = [e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]]
+            for vi in [i10, i01, i11]:
+                for j in range(3):
+                    vertex_normals[vi][j] += n[j]
+
+            indices.extend([i00, i01, i10, i10, i01, i11])
+
+    # Normalize
+    for vn in vertex_normals:
+        length = math.sqrt(vn[0]**2 + vn[1]**2 + vn[2]**2)
+        if length > 0:
+            vn[0] /= length
+            vn[1] /= length
+            vn[2] /= length
+        else:
+            vn[1] = 1.0
+    for vn in vertex_normals:
+        normals.extend(vn)
+
+    return positions, normals, uvs, indices
+
+
+def generate_tree_trunk(x, z, ground_y, trunk_h=3.0, trunk_r=0.3):
+    """Simple cylinder trunk."""
+    return generate_cylinder(trunk_r, trunk_h, 8, (x, ground_y, z))
+
+
+def generate_tree_canopy(x, z, ground_y, trunk_h=3.0, canopy_r=2.0, canopy_h=4.0):
+    """Cone-shaped canopy."""
+    return generate_cone(canopy_r, canopy_h, 10, (x, ground_y + trunk_h, z))
+
+
+def generate_grass_texture(width=512, height=512):
+    """Procedural grass texture with variation."""
+    rng = random.Random(55)
+    img = Image.new('RGB', (width, height))
+    pixels = img.load()
+
+    for y in range(height):
+        for x in range(width):
+            g = 90 + rng.randint(-15, 15)
+            r = max(0, min(255, 55 + rng.randint(-15, 15)))
+            gv = max(0, min(255, g + rng.randint(-10, 10)))
+            b = max(0, min(255, 35 + rng.randint(-10, 10)))
+            pixels[x, y] = (r, gv, b)
+
+    # Add some dirt patches
+    for _ in range(15):
+        cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
+        rad = rng.randint(8, 25)
+        for dy in range(-rad, rad+1):
+            for dx in range(-rad, rad+1):
+                if dx*dx + dy*dy <= rad*rad:
+                    px2, py2 = (cx+dx) % width, (cy+dy) % height
+                    pr, pg, pb = pixels[px2, py2]
+                    # Shift toward brown
+                    pixels[px2, py2] = (min(255, pr + 30), max(0, pg - 15), max(0, pb - 5))
+
+    # Add some darker grass patches
+    for _ in range(20):
+        cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
+        rad = rng.randint(10, 30)
+        for dy in range(-rad, rad+1):
+            for dx in range(-rad, rad+1):
+                if dx*dx + dy*dy <= rad*rad:
+                    px2, py2 = (cx+dx) % width, (cy+dy) % height
+                    pr, pg, pb = pixels[px2, py2]
+                    pixels[px2, py2] = (max(0, pr - 10), min(255, pg + 10), max(0, pb - 5))
+    return img
+
+
+def generate_bark_texture(width=256, height=256):
+    """Simple brown bark texture."""
+    rng = random.Random(33)
+    img = Image.new('RGB', (width, height))
+    pixels = img.load()
+    for y in range(height):
+        for x in range(width):
+            base = 70 + rng.randint(-10, 10)
+            # Vertical streaks
+            streak = int(10 * math.sin(x * 0.5 + rng.uniform(-0.5, 0.5)))
+            r = max(0, min(255, base + 15 + streak + rng.randint(-5, 5)))
+            g = max(0, min(255, base - 5 + streak + rng.randint(-5, 5)))
+            b = max(0, min(255, base - 25 + streak + rng.randint(-5, 5)))
+            pixels[x, y] = (r, g, b)
+    return img
+
+
+def generate_leaves_texture(width=256, height=256):
+    """Simple green leaves texture."""
+    rng = random.Random(44)
+    img = Image.new('RGB', (width, height))
+    pixels = img.load()
+    for y in range(height):
+        for x in range(width):
+            r = max(0, min(255, 30 + rng.randint(-15, 15)))
+            g = max(0, min(255, 80 + rng.randint(-25, 25)))
+            b = max(0, min(255, 20 + rng.randint(-10, 10)))
+            pixels[x, y] = (r, g, b)
+    return img
+
+
 def build_castle():
     """Build the complete multi-layered castle. Returns dict of geometry by material."""
-    parts = {'stone': [], 'rock': [], 'roof': []}
+    parts = {'stone': [], 'rock': [], 'roof': [], 'grass': [], 'bark': [], 'leaves': []}
 
     # ============================================================
     # Layer 1: Rocky hill base
@@ -597,8 +791,11 @@ def build_castle():
     parts['rock'].append(generate_box(58, 3, 58, (0, 4.5, 0)))
     parts['rock'].append(generate_box(46, 2, 46, (0, 7.0, 0)))
 
-    # Irregular rocky outcrops around the base
+    # Irregular rocky outcrops around the base (skip south approach path)
     for angle_deg in range(0, 360, 30):
+        # Skip outcrops that would block the south entrance path
+        if 60 <= angle_deg <= 120:
+            continue
         a = math.radians(angle_deg)
         dist = 30 + random.Random(angle_deg).uniform(-5, 5)
         bw = random.Random(angle_deg + 1).uniform(4, 8)
@@ -609,6 +806,40 @@ def build_castle():
             (dist * math.cos(a), bh/2, dist * math.sin(a))))
 
     hill_top = 8.0  # top of the hill platform
+
+    # ============================================================
+    # Entrance ramp from ground level up to the gate
+    # ============================================================
+    # The gate is at Z=outer_r (22), Y=hill_top (8).
+    # Build a series of stepped ramp segments from Z=40 up to Z=22.
+    ramp_width = 7.0
+    ramp_steps = 10
+    ramp_z_start = 42.0
+    ramp_z_end = 22.0
+    ramp_z_len = ramp_z_start - ramp_z_end
+    for i in range(ramp_steps):
+        t0 = i / ramp_steps
+        t1 = (i + 1) / ramp_steps
+        z0 = ramp_z_start - t0 * ramp_z_len
+        z1 = ramp_z_start - t1 * ramp_z_len
+        y0 = t0 * hill_top
+        y1 = t1 * hill_top
+        seg_z = (z0 + z1) / 2
+        seg_y = (y0 + y1) / 2
+        seg_h = max(y1 - y0, 0.3)
+        seg_d = z0 - z1
+        parts['rock'].append(generate_box(
+            ramp_width, seg_y + 0.15, seg_d,
+            (0, (seg_y + 0.15) / 2, seg_z)))
+    # Ramp side walls
+    for side_x in [-ramp_width/2 - 0.3, ramp_width/2 + 0.3]:
+        for i in range(ramp_steps):
+            t = (i + 0.5) / ramp_steps
+            z = ramp_z_start - t * ramp_z_len
+            y = t * hill_top
+            parts['stone'].append(generate_box(
+                0.6, 1.2, ramp_z_len / ramp_steps,
+                (side_x, y + 0.6, z)))
 
     # ============================================================
     # Layer 2: Outer curtain wall with 8 towers
@@ -771,6 +1002,32 @@ def build_castle():
     add_building(parts, 0, -7, inner_base, 7, 8, 6, 4)
     add_building(parts, 0, 7, inner_base, 6, 6, 5, 3)
 
+    # ============================================================
+    # Layer 8: Terrain (heightmap ground)
+    # ============================================================
+    parts['grass'].append(generate_terrain_mesh(
+        size=500, resolution=80, castle_radius=40))
+
+    # ============================================================
+    # Layer 9: Trees scattered around the landscape
+    # ============================================================
+    tree_rng = random.Random(200)
+    for _ in range(120):
+        tx = tree_rng.uniform(-200, 200)
+        tz = tree_rng.uniform(-200, 200)
+        # Don't place trees on the castle hill or the approach ramp
+        dist = math.sqrt(tx*tx + tz*tz)
+        if dist < 45:
+            continue
+        if abs(tx) < 6 and 20 < tz < 50:
+            continue
+        trunk_h = tree_rng.uniform(2.5, 5.0)
+        trunk_r = tree_rng.uniform(0.2, 0.4)
+        canopy_r = tree_rng.uniform(1.5, 3.0)
+        canopy_h = tree_rng.uniform(3.0, 6.0)
+        parts['bark'].append(generate_tree_trunk(tx, tz, 0, trunk_h, trunk_r))
+        parts['leaves'].append(generate_tree_canopy(tx, tz, 0, trunk_h, canopy_r, canopy_h))
+
     return parts
 
 
@@ -779,6 +1036,9 @@ def main():
     stone_tex = generate_stone_texture()
     rock_tex = generate_rock_texture()
     roof_tex = generate_roof_texture()
+    grass_tex = generate_grass_texture()
+    bark_tex = generate_bark_texture()
+    leaves_tex = generate_leaves_texture()
 
     print("Building castle geometry...")
     parts = build_castle()
@@ -799,7 +1059,20 @@ def main():
     roof_mat = builder.add_material("Roof",
         builder.add_texture(roof_img, sampler_idx), metallic=0.0, roughness=0.75)
 
-    mat_map = {'stone': stone_mat, 'rock': rock_mat, 'roof': roof_mat}
+    grass_img = builder.add_image_from_pil(grass_tex)
+    grass_mat = builder.add_material("Grass",
+        builder.add_texture(grass_img, sampler_idx), metallic=0.0, roughness=0.95)
+
+    bark_img = builder.add_image_from_pil(bark_tex)
+    bark_mat = builder.add_material("Bark",
+        builder.add_texture(bark_img, sampler_idx), metallic=0.0, roughness=0.9)
+
+    leaves_img = builder.add_image_from_pil(leaves_tex)
+    leaves_mat = builder.add_material("Leaves",
+        builder.add_texture(leaves_img, sampler_idx), metallic=0.0, roughness=0.8)
+
+    mat_map = {'stone': stone_mat, 'rock': rock_mat, 'roof': roof_mat,
+               'grass': grass_mat, 'bark': bark_mat, 'leaves': leaves_mat}
 
     for mat_name, geom_list in parts.items():
         if not geom_list:
