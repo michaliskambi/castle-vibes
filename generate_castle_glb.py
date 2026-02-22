@@ -1101,23 +1101,25 @@ def build_castle():
     outer_wall_h = 7.0
     outer_wall_thick = 1.2
     outer_base = hill_top
+    gate_half = 3.5  # half-width of gate opening
 
-    # 8 outer tower positions (4 corners + 4 midpoints)
+    # 9 outer tower positions (4 corners + 5 midpoints, gate flanked)
     outer_towers = [
         (outer_r, outer_r), (-outer_r, outer_r),
         (-outer_r, -outer_r), (outer_r, -outer_r),
-        (0, outer_r + 1), (0, -outer_r - 1),
+        # South: two gate-flanking towers instead of one blocking tower
+        (-gate_half - 4, outer_r + 1), (gate_half + 4, outer_r + 1),
+        (0, -outer_r - 1),
         (outer_r + 1, 0), (-outer_r - 1, 0),
     ]
-    outer_tower_heights = [10, 10, 10, 10, 11, 9, 9, 11]
-    outer_tower_radii = [2.5, 2.5, 2.5, 2.5, 2.8, 2.2, 2.2, 2.8]
+    outer_tower_heights = [10, 10, 10, 10, 11, 11, 9, 9, 11]
+    outer_tower_radii = [2.5, 2.5, 2.5, 2.5, 2.0, 2.0, 2.2, 2.2, 2.8]
 
     for (tx, tz), th, tr in zip(outer_towers, outer_tower_heights, outer_tower_radii):
         add_tower(parts, tx, tz, outer_base, tr, th, 16)
         add_tower_roof(parts, tx, tz, outer_base + th, tr, th * 0.4, 16)
 
     # Outer walls (connecting corner towers, with gaps for gate on south)
-    gate_half = 3.5
     # North wall
     add_wall(parts, -outer_r, -outer_r, outer_r, -outer_r,
              outer_base, outer_wall_h, outer_wall_thick)
