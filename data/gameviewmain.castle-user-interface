@@ -124,6 +124,7 @@
           {
             "$$ClassName" : "TCastleScene",
             "Name" : "SceneCastle",
+            "PreciseCollisions" : true,
             "RenderOptions" : {
               "$$ClassName" : "TCastleScene.TSceneRenderOptions"
             },
