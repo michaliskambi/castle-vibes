@@ -19,7 +19,7 @@ But, hey, it's 2026, we're all excited (and scared at the same time?) by the pos
 
 I used _Claude Code (Opus 4.6)_. It took me about 15 prompts to reach this, about 1h of prompting and testing. I was merely writing prompts and testing the game as a user. Some of the prompts were quite high level (e.g. _"add 6 goblins, make a quest to slain 6 goblins"_), some were more concrete and lower level and assuming knowledge of 3D and our engine (e.g. _"the collisions on castle 3D model are wrong, set `PreciseCollisions` to `true` on the `TCastleScene` with the castle"_ or _"castle towers look inside-out because of backface culling, flip the order of the vertexes in their triangles"_).
 
-This README file is the only file I edit by hand, plus I manually made and added a few screenshots (linked below). Everything else is made by AI. Explore it for curiosity, but be critical -- as explained below, and emphasized in [our AI usage guidelines](https://castle-engine.io/ai), AI code is not a good code.
+This README file is the only file I edit by hand, plus I manually made and added a few screenshots, plus I edited the [CastleEngineManifest.xml](CastleEngineManifest.xml) to fix the game caption. Everything else is made by AI. Explore it for curiosity, but _be critical_ -- as observed below, and emphasized in [our AI usage guidelines](https://castle-engine.io/ai), AI code is not a good code.
 
 Frankly, it seems that AI ability to maintain and extend this is at limits. And yes, the codebase has a lot of approches I would consider wrong -- making it hard to maintain and extend (for both humans and AI).
 

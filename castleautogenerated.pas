@@ -21,8 +21,8 @@ implementation
 uses CastleApplicationProperties, CastleWindow, CastleLog;
 
 initialization
-  ApplicationProperties.ApplicationName := 'empty';
-  ApplicationProperties.Caption := 'empty';
+  ApplicationProperties.ApplicationName := 'castle-vibes';
+  ApplicationProperties.Caption := 'Castle Vibes';
   ApplicationProperties.Version := '0.1';
 
   if not IsLibrary then
