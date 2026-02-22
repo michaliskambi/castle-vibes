@@ -298,18 +298,19 @@ def generate_cylinder(radius, height, segments, pos=(0, 0, 0)):
         c0, s0 = math.cos(a0), math.sin(a0)
         c1, s1 = math.cos(a1), math.sin(a1)
 
-        # 4 vertices per quad
+        # 4 vertices per quad (ordered for CCW winding when viewed from outside)
+        # 0: bottom at a1, 1: bottom at a0, 2: top at a0, 3: top at a1
         verts = [
-            (radius * c0, 0, radius * s0),
             (radius * c1, 0, radius * s1),
-            (radius * c1, height, radius * s1),
+            (radius * c0, 0, radius * s0),
             (radius * c0, height, radius * s0),
+            (radius * c1, height, radius * s1),
         ]
         norms = [
-            (c0, 0, s0),
-            (c1, 0, s1),
             (c1, 0, s1),
             (c0, 0, s0),
+            (c0, 0, s0),
+            (c1, 0, s1),
         ]
 
         for vi, v in enumerate(verts):
@@ -317,9 +318,9 @@ def generate_cylinder(radius, height, segments, pos=(0, 0, 0)):
             normals.extend(norms[vi])
             # UV: u based on arc position, v based on height
             if vi in (0, 3):
-                u = (circumference * i / segments) * TEXTURE_SCALE
-            else:
                 u = (circumference * (i + 1) / segments) * TEXTURE_SCALE
+            else:
+                u = (circumference * i / segments) * TEXTURE_SCALE
             v_coord = (v[1] + py) * TEXTURE_SCALE
             uvs.extend([u, v_coord])
 
