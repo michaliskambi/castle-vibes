@@ -35,8 +35,8 @@
             "Name" : "Ground",
             "SizePersistent" : {
               "$$ClassName" : "TCastleVector2Persistent",
-              "X" : 1.0000000000000000E+002,
-              "Y" : 1.0000000000000000E+002
+              "X" : 1.0000000000000000E+003,
+              "Y" : 1.0000000000000000E+003
             }
           },
           {
