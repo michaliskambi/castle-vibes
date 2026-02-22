@@ -585,8 +585,8 @@ def add_building(parts, x, z, base_y, w, h, d, roof_h):
     parts['roof'].append(generate_wedge_roof(w, d, roof_h, (x, base_y + h, z)))
 
 
-def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
-    """Generate a terrain heightmap mesh with gentle hills, flat near the castle."""
+def generate_terrain_mesh(size=500, resolution=120, castle_radius=40):
+    """Generate a terrain heightmap mesh with varied hills, flat near the castle."""
     rng = random.Random(123)
     half = size / 2
     step = size / resolution
@@ -594,12 +594,12 @@ def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
     # Generate heightmap
     heights = [[0.0] * (resolution + 1) for _ in range(resolution + 1)]
 
-    # Add random hills
-    for _ in range(40):
+    # Large rolling hills
+    for _ in range(25):
         cx = rng.uniform(-half, half)
         cz = rng.uniform(-half, half)
-        bump_r = rng.uniform(30, 80)
-        bump_h = rng.uniform(2, 8)
+        bump_r = rng.uniform(50, 120)
+        bump_h = rng.uniform(3, 12)
         for gz in range(resolution + 1):
             for gx in range(resolution + 1):
                 wx = -half + gx * step
@@ -610,6 +610,54 @@ def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
                     falloff = 1.0 - dist2 / (bump_r * bump_r)
                     heights[gz][gx] += bump_h * falloff * falloff
 
+    # Medium undulations
+    for _ in range(60):
+        cx = rng.uniform(-half, half)
+        cz = rng.uniform(-half, half)
+        bump_r = rng.uniform(15, 40)
+        bump_h = rng.uniform(1, 4)
+        for gz in range(resolution + 1):
+            for gx in range(resolution + 1):
+                wx = -half + gx * step
+                wz = -half + gz * step
+                dx, dz = wx - cx, wz - cz
+                dist2 = dx*dx + dz*dz
+                if dist2 < bump_r * bump_r:
+                    falloff = 1.0 - dist2 / (bump_r * bump_r)
+                    heights[gz][gx] += bump_h * falloff * falloff
+
+    # Small bumps for micro-detail
+    for _ in range(150):
+        cx = rng.uniform(-half, half)
+        cz = rng.uniform(-half, half)
+        bump_r = rng.uniform(5, 15)
+        bump_h = rng.uniform(0.3, 1.5)
+        for gz in range(resolution + 1):
+            for gx in range(resolution + 1):
+                wx = -half + gx * step
+                wz = -half + gz * step
+                dx, dz = wx - cx, wz - cz
+                dist2 = dx*dx + dz*dz
+                if dist2 < bump_r * bump_r:
+                    falloff = 1.0 - dist2 / (bump_r * bump_r)
+                    heights[gz][gx] += bump_h * falloff
+
+    # A few valleys (negative bumps)
+    for _ in range(10):
+        cx = rng.uniform(-half * 0.8, half * 0.8)
+        cz = rng.uniform(-half * 0.8, half * 0.8)
+        bump_r = rng.uniform(20, 50)
+        bump_h = rng.uniform(1, 3)
+        for gz in range(resolution + 1):
+            for gx in range(resolution + 1):
+                wx = -half + gx * step
+                wz = -half + gz * step
+                dx, dz = wx - cx, wz - cz
+                dist2 = dx*dx + dz*dz
+                if dist2 < bump_r * bump_r:
+                    falloff = 1.0 - dist2 / (bump_r * bump_r)
+                    heights[gz][gx] -= bump_h * falloff * falloff
+
     # Flatten near the castle center and the approach path
     for gz in range(resolution + 1):
         for gx in range(resolution + 1):
@@ -617,17 +665,21 @@ def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
             wz = -half + gz * step
             dist = math.sqrt(wx*wx + wz*wz)
             if dist < castle_radius:
-                # Smooth transition to flat
                 t = dist / castle_radius
-                t = max(0, min(1, (t - 0.5) * 2))  # ramp from 0.5r to r
+                t = max(0, min(1, (t - 0.4) * (1.0 / 0.6)))
                 heights[gz][gx] *= t * t
-            # Also flatten the approach path (south, positive Z)
+            # Flatten the approach path (south, positive Z)
             if abs(wx) < 8 and wz > 0:
                 path_factor = max(0, 1.0 - abs(wx) / 8)
-                heights[gz][gx] *= (1.0 - path_factor * 0.8)
+                heights[gz][gx] *= (1.0 - path_factor * 0.85)
+
+    # Clamp minimum height so terrain doesn't go below 0
+    for gz in range(resolution + 1):
+        for gx in range(resolution + 1):
+            heights[gz][gx] = max(-0.5, heights[gz][gx])
 
     # Smooth pass
-    for _ in range(3):
+    for _ in range(2):
         new_h = [[0.0] * (resolution + 1) for _ in range(resolution + 1)]
         for gz in range(resolution + 1):
             for gx in range(resolution + 1):
@@ -699,52 +751,184 @@ def generate_terrain_mesh(size=500, resolution=100, castle_radius=40):
     return positions, normals, uvs, indices
 
 
-def generate_tree_trunk(x, z, ground_y, trunk_h=3.0, trunk_r=0.3):
-    """Simple cylinder trunk."""
-    return generate_cylinder(trunk_r, trunk_h, 8, (x, ground_y, z))
+def generate_tree(x, z, ground_y, tree_type='oak', rng=None):
+    """Generate a realistic tree with trunk and multi-layered canopy.
 
+    Returns (bark_parts, leaves_parts) - lists of geometry tuples.
+    tree_type: 'oak' (broad, round), 'pine' (tall, conical), 'birch' (slim, tall)
+    """
+    if rng is None:
+        rng = random.Random()
+    bark_parts = []
+    leaves_parts = []
 
-def generate_tree_canopy(x, z, ground_y, trunk_h=3.0, canopy_r=2.0, canopy_h=4.0):
-    """Cone-shaped canopy."""
-    return generate_cone(canopy_r, canopy_h, 10, (x, ground_y + trunk_h, z))
+    if tree_type == 'oak':
+        # Thick trunk, slightly tapered
+        trunk_h = rng.uniform(3.5, 5.5)
+        trunk_r_base = rng.uniform(0.35, 0.55)
+        trunk_r_top = trunk_r_base * 0.7
+        # Main trunk
+        bark_parts.append(generate_cylinder(trunk_r_base, trunk_h, 8,
+                                             (x, ground_y, z)))
+        # Branch stumps (thicker cylinders angled out)
+        for bi in range(rng.randint(2, 4)):
+            ba = rng.uniform(0, 2 * math.pi)
+            bh_start = trunk_h * rng.uniform(0.5, 0.85)
+            br = trunk_r_base * 0.5
+            bl = rng.uniform(1.0, 2.0)
+            bx = x + math.cos(ba) * bl * 0.5
+            bz = z + math.sin(ba) * bl * 0.5
+            bark_parts.append(generate_cylinder(br, bl, 6,
+                (bx, ground_y + bh_start, bz)))
+
+        # Multi-layered canopy (overlapping ellipsoid-like shapes using
+        # flattened cones and inverted cones to approximate round canopy)
+        canopy_base = ground_y + trunk_h * 0.6
+        canopy_top = ground_y + trunk_h + rng.uniform(3, 5)
+        canopy_mid = (canopy_base + canopy_top) / 2
+        canopy_r = rng.uniform(2.5, 4.0)
+
+        # Main large canopy dome
+        leaves_parts.append(generate_cone(canopy_r, canopy_top - canopy_mid, 12,
+                                           (x, canopy_mid, z)))
+        # Lower skirt (inverted wider cone)
+        leaves_parts.append(generate_cone(canopy_r * 1.1, canopy_mid - canopy_base, 12,
+                                           (x, canopy_base, z)))
+        # Several offset sub-canopy blobs
+        for _ in range(rng.randint(3, 6)):
+            off_a = rng.uniform(0, 2 * math.pi)
+            off_d = rng.uniform(0.5, canopy_r * 0.6)
+            off_y = rng.uniform(canopy_mid - 1, canopy_mid + 1)
+            off_r = rng.uniform(1.2, canopy_r * 0.7)
+            off_h = rng.uniform(1.5, 3.0)
+            leaves_parts.append(generate_cone(off_r, off_h, 10,
+                (x + math.cos(off_a) * off_d, off_y, z + math.sin(off_a) * off_d)))
+
+    elif tree_type == 'pine':
+        # Tall straight trunk
+        trunk_h = rng.uniform(6, 10)
+        trunk_r = rng.uniform(0.2, 0.35)
+        bark_parts.append(generate_cylinder(trunk_r, trunk_h, 8,
+                                             (x, ground_y, z)))
+        # Layered conical canopy (3-5 tiers, progressively smaller)
+        n_tiers = rng.randint(3, 5)
+        for ti in range(n_tiers):
+            t = ti / n_tiers
+            tier_y = ground_y + trunk_h * (0.3 + t * 0.6)
+            tier_r = rng.uniform(1.5, 3.0) * (1.0 - t * 0.6)
+            tier_h = rng.uniform(2.0, 3.5) * (1.0 - t * 0.3)
+            # Slight random offset for natural look
+            ox = rng.uniform(-0.3, 0.3)
+            oz = rng.uniform(-0.3, 0.3)
+            leaves_parts.append(generate_cone(tier_r, tier_h, 10,
+                                               (x + ox, tier_y, z + oz)))
+        # Top spire
+        leaves_parts.append(generate_cone(0.8, 2.0, 8,
+            (x, ground_y + trunk_h, z)))
+
+    elif tree_type == 'birch':
+        # Slim tall trunk, white-ish bark (handled by texture)
+        trunk_h = rng.uniform(5, 8)
+        trunk_r = rng.uniform(0.15, 0.25)
+        bark_parts.append(generate_cylinder(trunk_r, trunk_h, 8,
+                                             (x, ground_y, z)))
+        # Light, airy canopy - several small cone clusters
+        canopy_base_y = ground_y + trunk_h * 0.5
+        for _ in range(rng.randint(5, 8)):
+            off_a = rng.uniform(0, 2 * math.pi)
+            off_d = rng.uniform(0.3, 1.5)
+            off_y = rng.uniform(canopy_base_y, ground_y + trunk_h + 1)
+            cr = rng.uniform(0.8, 1.8)
+            ch = rng.uniform(1.0, 2.5)
+            leaves_parts.append(generate_cone(cr, ch, 8,
+                (x + math.cos(off_a) * off_d, off_y, z + math.sin(off_a) * off_d)))
+
+    return bark_parts, leaves_parts
 
 
 def generate_grass_texture(width=512, height=512):
-    """Procedural grass texture with variation."""
+    """Rich procedural grass texture with blade detail and variation."""
     rng = random.Random(55)
     img = Image.new('RGB', (width, height))
     pixels = img.load()
 
+    # Base layer: varied green with earthy undertone
     for y in range(height):
         for x in range(width):
-            g = 90 + rng.randint(-15, 15)
-            r = max(0, min(255, 55 + rng.randint(-15, 15)))
-            gv = max(0, min(255, g + rng.randint(-10, 10)))
-            b = max(0, min(255, 35 + rng.randint(-10, 10)))
-            pixels[x, y] = (r, gv, b)
+            # Mix of greens
+            base_g = 75 + rng.randint(-10, 10)
+            r = max(0, min(255, 45 + rng.randint(-12, 12)))
+            g = max(0, min(255, base_g + rng.randint(-8, 8)))
+            b = max(0, min(255, 28 + rng.randint(-8, 8)))
+            pixels[x, y] = (r, g, b)
 
-    # Add some dirt patches
-    for _ in range(15):
+    # Grass blade streaks (vertical-ish bright lines)
+    for _ in range(800):
+        bx = rng.randint(0, width - 1)
+        by = rng.randint(0, height - 1)
+        blade_len = rng.randint(3, 12)
+        bright = rng.randint(10, 35)
+        dx_drift = rng.choice([-1, 0, 0, 0, 1])
+        for step in range(blade_len):
+            py2 = (by + step) % height
+            px2 = (bx + dx_drift * step // 3) % width
+            pr, pg, pb = pixels[px2, py2]
+            pixels[px2, py2] = (min(255, pr + bright // 3),
+                                min(255, pg + bright),
+                                min(255, pb + bright // 4))
+
+    # Darker grass clumps
+    for _ in range(40):
         cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
         rad = rng.randint(8, 25)
+        darkness = rng.randint(10, 25)
         for dy in range(-rad, rad+1):
             for dx in range(-rad, rad+1):
                 if dx*dx + dy*dy <= rad*rad:
                     px2, py2 = (cx+dx) % width, (cy+dy) % height
                     pr, pg, pb = pixels[px2, py2]
-                    # Shift toward brown
-                    pixels[px2, py2] = (min(255, pr + 30), max(0, pg - 15), max(0, pb - 5))
+                    dist_f = (dx*dx + dy*dy) / (rad*rad)
+                    d = int(darkness * (1 - dist_f))
+                    pixels[px2, py2] = (max(0, pr - d),
+                                        min(255, pg + d // 2),
+                                        max(0, pb - d // 2))
 
-    # Add some darker grass patches
-    for _ in range(20):
+    # Lighter sun-hit patches
+    for _ in range(25):
         cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
-        rad = rng.randint(10, 30)
+        rad = rng.randint(12, 35)
         for dy in range(-rad, rad+1):
             for dx in range(-rad, rad+1):
                 if dx*dx + dy*dy <= rad*rad:
                     px2, py2 = (cx+dx) % width, (cy+dy) % height
                     pr, pg, pb = pixels[px2, py2]
-                    pixels[px2, py2] = (max(0, pr - 10), min(255, pg + 10), max(0, pb - 5))
+                    dist_f = (dx*dx + dy*dy) / (rad*rad)
+                    lift = int(15 * (1 - dist_f))
+                    pixels[px2, py2] = (min(255, pr + lift),
+                                        min(255, pg + lift + 5),
+                                        min(255, pb + lift // 2))
+
+    # Dirt patches
+    for _ in range(12):
+        cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
+        rad = rng.randint(6, 18)
+        for dy in range(-rad, rad+1):
+            for dx in range(-rad, rad+1):
+                if dx*dx + dy*dy <= rad*rad:
+                    px2, py2 = (cx+dx) % width, (cy+dy) % height
+                    pr, pg, pb = pixels[px2, py2]
+                    dist_f = (dx*dx + dy*dy) / (rad*rad)
+                    f = 1 - dist_f
+                    pixels[px2, py2] = (min(255, int(pr + 35 * f)),
+                                        max(0, int(pg - 20 * f)),
+                                        max(0, int(pb + 5 * f)))
+
+    # Tiny yellow/dry grass specks
+    for _ in range(300):
+        px2 = rng.randint(0, width-1)
+        py2 = rng.randint(0, height-1)
+        pixels[px2, py2] = (rng.randint(120, 160), rng.randint(110, 140), rng.randint(40, 70))
+
     return img
 
 
@@ -766,16 +950,48 @@ def generate_bark_texture(width=256, height=256):
 
 
 def generate_leaves_texture(width=256, height=256):
-    """Simple green leaves texture."""
+    """Rich green foliage texture with depth and variation."""
     rng = random.Random(44)
     img = Image.new('RGB', (width, height))
     pixels = img.load()
+
+    # Base dark green
     for y in range(height):
         for x in range(width):
-            r = max(0, min(255, 30 + rng.randint(-15, 15)))
-            g = max(0, min(255, 80 + rng.randint(-25, 25)))
-            b = max(0, min(255, 20 + rng.randint(-10, 10)))
+            r = max(0, min(255, 25 + rng.randint(-10, 10)))
+            g = max(0, min(255, 65 + rng.randint(-15, 15)))
+            b = max(0, min(255, 18 + rng.randint(-8, 8)))
             pixels[x, y] = (r, g, b)
+
+    # Leaf-shaped bright spots
+    for _ in range(200):
+        lx = rng.randint(0, width - 1)
+        ly = rng.randint(0, height - 1)
+        ls = rng.randint(2, 6)
+        bright = rng.randint(15, 40)
+        for dy in range(-ls, ls + 1):
+            for dx in range(-ls, ls + 1):
+                if abs(dx) + abs(dy) <= ls:
+                    px2 = (lx + dx) % width
+                    py2 = (ly + dy) % height
+                    pr, pg, pb = pixels[px2, py2]
+                    f = 1 - (abs(dx) + abs(dy)) / ls
+                    pixels[px2, py2] = (min(255, pr + int(bright * 0.3 * f)),
+                                        min(255, pg + int(bright * f)),
+                                        min(255, pb + int(bright * 0.2 * f)))
+
+    # Dark shadow patches
+    for _ in range(50):
+        cx, cy = rng.randint(0, width-1), rng.randint(0, height-1)
+        rad = rng.randint(3, 8)
+        for dy in range(-rad, rad+1):
+            for dx in range(-rad, rad+1):
+                if dx*dx + dy*dy <= rad*rad:
+                    px2 = (cx + dx) % width
+                    py2 = (cy + dy) % height
+                    pr, pg, pb = pixels[px2, py2]
+                    pixels[px2, py2] = (max(0, pr - 8), max(0, pg - 12), max(0, pb - 5))
+
     return img
 
 
@@ -784,12 +1000,49 @@ def build_castle():
     parts = {'stone': [], 'rock': [], 'roof': [], 'grass': [], 'bark': [], 'leaves': []}
 
     # ============================================================
-    # Layer 1: Rocky hill base
+    # Layer 1: Rocky hill base (with south entrance gap)
     # ============================================================
-    # Main mound - terraced layers
-    parts['rock'].append(generate_box(70, 3, 70, (0, 1.5, 0)))
-    parts['rock'].append(generate_box(58, 3, 58, (0, 4.5, 0)))
-    parts['rock'].append(generate_box(46, 2, 46, (0, 7.0, 0)))
+    # Split each terrace into pieces that leave a gap for the south gate.
+    # Gap is centered at X=0, from Z=gate_cutout_z to the south edge.
+    gap_w = 9.0  # width of the entrance cut
+    gap_half = gap_w / 2
+
+    # Terrace 1: 70x3x70 at Y=1.5
+    # Split into: north slab + west slab + east slab (leaving south-center open)
+    t1_half = 35.0
+    t1_south_cut = 20.0  # Z beyond which we cut
+    # North part (full width, from Z=-35 to Z=+20)
+    parts['rock'].append(generate_box(70, 3, t1_half + t1_south_cut,
+                                       (0, 1.5, -(t1_half - t1_south_cut) / 2)))
+    # South-west part
+    sw_w = t1_half - gap_half
+    parts['rock'].append(generate_box(sw_w, 3, t1_half - t1_south_cut,
+                                       (-(gap_half + sw_w / 2), 1.5, (t1_south_cut + t1_half) / 2)))
+    # South-east part
+    parts['rock'].append(generate_box(sw_w, 3, t1_half - t1_south_cut,
+                                       ((gap_half + sw_w / 2), 1.5, (t1_south_cut + t1_half) / 2)))
+
+    # Terrace 2: 58x3x58 at Y=4.5
+    t2_half = 29.0
+    t2_south_cut = 18.0
+    parts['rock'].append(generate_box(58, 3, t2_half + t2_south_cut,
+                                       (0, 4.5, -(t2_half - t2_south_cut) / 2)))
+    sw_w2 = t2_half - gap_half
+    parts['rock'].append(generate_box(sw_w2, 3, t2_half - t2_south_cut,
+                                       (-(gap_half + sw_w2 / 2), 4.5, (t2_south_cut + t2_half) / 2)))
+    parts['rock'].append(generate_box(sw_w2, 3, t2_half - t2_south_cut,
+                                       ((gap_half + sw_w2 / 2), 4.5, (t2_south_cut + t2_half) / 2)))
+
+    # Terrace 3: 46x2x46 at Y=7.0
+    t3_half = 23.0
+    t3_south_cut = 16.0
+    parts['rock'].append(generate_box(46, 2, t3_half + t3_south_cut,
+                                       (0, 7.0, -(t3_half - t3_south_cut) / 2)))
+    sw_w3 = t3_half - gap_half
+    parts['rock'].append(generate_box(sw_w3, 2, t3_half - t3_south_cut,
+                                       (-(gap_half + sw_w3 / 2), 7.0, (t3_south_cut + t3_half) / 2)))
+    parts['rock'].append(generate_box(sw_w3, 2, t3_half - t3_south_cut,
+                                       ((gap_half + sw_w3 / 2), 7.0, (t3_south_cut + t3_half) / 2)))
 
     # Irregular rocky outcrops around the base (skip south approach path)
     for angle_deg in range(0, 360, 30):
@@ -1012,21 +1265,48 @@ def build_castle():
     # Layer 9: Trees scattered around the landscape
     # ============================================================
     tree_rng = random.Random(200)
-    for _ in range(120):
+    tree_types = ['oak', 'pine', 'birch']
+    tree_weights = [0.45, 0.35, 0.20]
+
+    # Dense clusters and scattered individuals
+    tree_positions = []
+    # Random scattered trees
+    for _ in range(150):
         tx = tree_rng.uniform(-200, 200)
         tz = tree_rng.uniform(-200, 200)
-        # Don't place trees on the castle hill or the approach ramp
+        tree_positions.append((tx, tz))
+
+    # Add some forest clusters
+    for _ in range(8):
+        cluster_x = tree_rng.uniform(-180, 180)
+        cluster_z = tree_rng.uniform(-180, 180)
+        if math.sqrt(cluster_x**2 + cluster_z**2) < 50:
+            continue
+        n_cluster = tree_rng.randint(8, 15)
+        for _ in range(n_cluster):
+            tx = cluster_x + tree_rng.gauss(0, 12)
+            tz = cluster_z + tree_rng.gauss(0, 12)
+            tree_positions.append((tx, tz))
+
+    for tx, tz in tree_positions:
         dist = math.sqrt(tx*tx + tz*tz)
         if dist < 45:
             continue
-        if abs(tx) < 6 and 20 < tz < 50:
+        if abs(tx) < 8 and 20 < tz < 55:
             continue
-        trunk_h = tree_rng.uniform(2.5, 5.0)
-        trunk_r = tree_rng.uniform(0.2, 0.4)
-        canopy_r = tree_rng.uniform(1.5, 3.0)
-        canopy_h = tree_rng.uniform(3.0, 6.0)
-        parts['bark'].append(generate_tree_trunk(tx, tz, 0, trunk_h, trunk_r))
-        parts['leaves'].append(generate_tree_canopy(tx, tz, 0, trunk_h, canopy_r, canopy_h))
+        # Pick tree type
+        r = tree_rng.random()
+        cum = 0
+        ttype = 'oak'
+        for tt, tw in zip(tree_types, tree_weights):
+            cum += tw
+            if r <= cum:
+                ttype = tt
+                break
+        bark_parts, leaves_parts = generate_tree(tx, tz, 0, ttype,
+                                                  random.Random(tree_rng.randint(0, 999999)))
+        parts['bark'].extend(bark_parts)
+        parts['leaves'].extend(leaves_parts)
 
     return parts
 
