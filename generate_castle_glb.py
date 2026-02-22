@@ -1000,107 +1000,12 @@ def build_castle():
     parts = {'stone': [], 'rock': [], 'roof': [], 'grass': [], 'bark': [], 'leaves': []}
 
     # ============================================================
-    # Layer 1: Rocky hill base (with south entrance gap)
-    # ============================================================
-    # Split each terrace into pieces that leave a gap for the south gate.
-    # Gap is centered at X=0, from Z=gate_cutout_z to the south edge.
-    gap_w = 9.0  # width of the entrance cut
-    gap_half = gap_w / 2
-
-    # Terrace 1: 70x3x70 at Y=1.5
-    # Split into: north slab + west slab + east slab (leaving south-center open)
-    t1_half = 35.0
-    t1_south_cut = 20.0  # Z beyond which we cut
-    # North part (full width, from Z=-35 to Z=+20)
-    parts['rock'].append(generate_box(70, 3, t1_half + t1_south_cut,
-                                       (0, 1.5, -(t1_half - t1_south_cut) / 2)))
-    # South-west part
-    sw_w = t1_half - gap_half
-    parts['rock'].append(generate_box(sw_w, 3, t1_half - t1_south_cut,
-                                       (-(gap_half + sw_w / 2), 1.5, (t1_south_cut + t1_half) / 2)))
-    # South-east part
-    parts['rock'].append(generate_box(sw_w, 3, t1_half - t1_south_cut,
-                                       ((gap_half + sw_w / 2), 1.5, (t1_south_cut + t1_half) / 2)))
-
-    # Terrace 2: 58x3x58 at Y=4.5
-    t2_half = 29.0
-    t2_south_cut = 18.0
-    parts['rock'].append(generate_box(58, 3, t2_half + t2_south_cut,
-                                       (0, 4.5, -(t2_half - t2_south_cut) / 2)))
-    sw_w2 = t2_half - gap_half
-    parts['rock'].append(generate_box(sw_w2, 3, t2_half - t2_south_cut,
-                                       (-(gap_half + sw_w2 / 2), 4.5, (t2_south_cut + t2_half) / 2)))
-    parts['rock'].append(generate_box(sw_w2, 3, t2_half - t2_south_cut,
-                                       ((gap_half + sw_w2 / 2), 4.5, (t2_south_cut + t2_half) / 2)))
-
-    # Terrace 3: 46x2x46 at Y=7.0
-    t3_half = 23.0
-    t3_south_cut = 16.0
-    parts['rock'].append(generate_box(46, 2, t3_half + t3_south_cut,
-                                       (0, 7.0, -(t3_half - t3_south_cut) / 2)))
-    sw_w3 = t3_half - gap_half
-    parts['rock'].append(generate_box(sw_w3, 2, t3_half - t3_south_cut,
-                                       (-(gap_half + sw_w3 / 2), 7.0, (t3_south_cut + t3_half) / 2)))
-    parts['rock'].append(generate_box(sw_w3, 2, t3_half - t3_south_cut,
-                                       ((gap_half + sw_w3 / 2), 7.0, (t3_south_cut + t3_half) / 2)))
-
-    # Irregular rocky outcrops around the base (skip south approach path)
-    for angle_deg in range(0, 360, 30):
-        # Skip outcrops that would block the south entrance path
-        if 60 <= angle_deg <= 120:
-            continue
-        a = math.radians(angle_deg)
-        dist = 30 + random.Random(angle_deg).uniform(-5, 5)
-        bw = random.Random(angle_deg + 1).uniform(4, 8)
-        bh = random.Random(angle_deg + 2).uniform(2, 5)
-        bd = random.Random(angle_deg + 3).uniform(4, 8)
-        parts['rock'].append(generate_box(
-            bw, bh, bd,
-            (dist * math.cos(a), bh/2, dist * math.sin(a))))
-
-    hill_top = 8.0  # top of the hill platform
-
-    # ============================================================
-    # Entrance ramp from ground level up to the gate
-    # ============================================================
-    # The gate is at Z=outer_r (22), Y=hill_top (8).
-    # Build a series of stepped ramp segments from Z=40 up to Z=22.
-    ramp_width = 7.0
-    ramp_steps = 10
-    ramp_z_start = 42.0
-    ramp_z_end = 22.0
-    ramp_z_len = ramp_z_start - ramp_z_end
-    for i in range(ramp_steps):
-        t0 = i / ramp_steps
-        t1 = (i + 1) / ramp_steps
-        z0 = ramp_z_start - t0 * ramp_z_len
-        z1 = ramp_z_start - t1 * ramp_z_len
-        y0 = t0 * hill_top
-        y1 = t1 * hill_top
-        seg_z = (z0 + z1) / 2
-        seg_y = (y0 + y1) / 2
-        seg_h = max(y1 - y0, 0.3)
-        seg_d = z0 - z1
-        parts['rock'].append(generate_box(
-            ramp_width, seg_y + 0.15, seg_d,
-            (0, (seg_y + 0.15) / 2, seg_z)))
-    # Ramp side walls
-    for side_x in [-ramp_width/2 - 0.3, ramp_width/2 + 0.3]:
-        for i in range(ramp_steps):
-            t = (i + 0.5) / ramp_steps
-            z = ramp_z_start - t * ramp_z_len
-            y = t * hill_top
-            parts['stone'].append(generate_box(
-                0.6, 1.2, ramp_z_len / ramp_steps,
-                (side_x, y + 0.6, z)))
-
-    # ============================================================
-    # Layer 2: Outer curtain wall with 8 towers
+    # Layer 1: Outer curtain wall with 9 towers
     # ============================================================
     outer_r = 22  # half-size of outer wall perimeter
     outer_wall_h = 7.0
     outer_wall_thick = 1.2
-    outer_base = hill_top
+    outer_base = 0.0  # castle sits on the terrain
     gate_half = 3.5  # half-width of gate opening
 
     # 9 outer tower positions (4 corners + 5 midpoints, gate flanked)
@@ -1170,11 +1075,7 @@ def build_castle():
     inner_r = 11
     inner_wall_h = 9.0
     inner_wall_thick = 1.5
-    inner_base = hill_top + 2.0  # sits on higher ground
-
-    # Raised inner platform
-    parts['rock'].append(generate_box(inner_r*2 + 4, 2, inner_r*2 + 4,
-                                       (0, hill_top + 1.0, 0)))
+    inner_base = 0.0  # same ground level
 
     inner_towers = [
         (inner_r, inner_r), (-inner_r, inner_r),
@@ -1203,9 +1104,7 @@ def build_castle():
     # ============================================================
     # Layer 5: Central keep (the donjon)
     # ============================================================
-    keep_base = inner_base + 1.0
-    # Raised keep platform
-    parts['rock'].append(generate_box(12, 1, 12, (0, inner_base + 0.5, 0)))
+    keep_base = 0.0
 
     keep_w, keep_h, keep_d = 8, 18, 8
     parts['stone'].append(generate_box(keep_w, keep_h, keep_d,
