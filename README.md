@@ -37,7 +37,7 @@ Observations:
 
 - It is maybe the worst game I ever made/played, but **it is playable, which is impressive in itself. You can walk around a winter scenery with a 3D castle, fog, falling snow, some forest, minimap. You can get a quest to slain 6 goblins, and do it, and at the end you get the reward - trophy appears**.
 
-- It's not a game I designed or control, which is ultimately why I don't think this (vibe-coding) is the future of development, even if/when AI agents will substantially improve. It's a random game. Features, look, details (placement, quests) of everything -> is an outcome of a random process. We can speculate how much the quality will improve "out of the box" with better AI agents in upcoming months/years, but ultimately if I want to control over the game -> I will need to put much more work into spec/prompting or "get my hands dirty" and just edit the code/data myself. At some point, "just edit the code/data myself" is more efficient, at the end we've made the engine to be easy to use.
+- It's not a game I designed or control. It's a random game. Features, look, details (placement, quests) of everything -> is an outcome of a random process, as you can only specify so much in ~15 paragraphs in English. We can speculate how much the quality will improve "out of the box" with better AI agents in upcoming months/years, but ultimately if I want to control over the game -> I will need to put much more work into spec/prompting or "get my hands dirty" and just edit the code/data myself. At some points, "just edit the code/data myself" will be more efficient, at the end we've made the engine to be easy to use. Pascal code is the most precise "spec" :) So I don't see the future as "just vibe code me this app". The real applications will be a result of iteration on the solution with both AI and manual work.
 
 - AI made stupidest errors along the way (like miscounting the slain goblins). I pointed them out, but various detections seem to work still ~randomly.
 
@@ -45,7 +45,7 @@ Observations:
 
 - In general, it looked at _Castle Game Engine_ source code on my disk, including the [CLAUDE.md in engine repo](https://github.com/castle-engine/castle-engine/blob/master/CLAUDE.md), and correctly did _some_ things following our established examples.
 
-- The snowflakes are very cool, look good, and work reasonably (albeit disappear if you walk too fast). Though their implementation is super-unoptimal, using 400 instances of `TCastleSphere`. At the very least, you should use `TCastleTransformReference` to have only 1 sphere in resources. But I cannot argue -- the approach made by AI is "good enough" for this trivial demo.
+- The snowflakes are very cool, look good, and work reasonably (albeit disappear if you walk too fast). Though their implementation is unoptimal, using 400 instances of `TCastleSphere`. (But it uses at least `TCastleTransformReference` after my prompt.) But I cannot argue -- the approach made by AI is "good enough" for this trivial demo, on desktops they are fast enough.
 
 - It generated the glTF models using Python, directly generating the JSONs. This is not what I would advise, instead:
 
