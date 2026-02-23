@@ -37,6 +37,8 @@ Observations:
 
 - It is maybe the worst game I ever made/played, but **it is playable, which is impressive in itself. You can walk around a winter scenery with a 3D castle, fog, falling snow, some forest, minimap. You can get a quest to slain 6 goblins, and do it, and at the end you get the reward - trophy appears**.
 
+- It's not a game I designed or control, which is ultimately why I don't think this (vibe-coding) is the future of development, even if/when AI agents will substantially improve. It's a random game. Features, look, details (placement, quests) of everything -> is an outcome of a random process. We can speculate how much the quality will improve "out of the box" with better AI agents in upcoming months/years, but ultimately if I want to control over the game -> I will need to put much more work into spec/prompting or "get my hands dirty" and just edit the code/data myself.
+
 - AI made stupidest errors along the way (like miscounting the slain goblins). I pointed them out, but various detections seem to work still ~randomly.
 
 - AI did half-correctly use our `TCastleView` for a dialog (talk with NPC) logic, likely because [it found engine example doing exactly this](https://github.com/castle-engine/castle-engine/tree/master/examples/3d_games/walking_adventure). The dialog UI is needlessly generated using Pascal, resulting in long and hard to modify UI -- rather use editor, and design UI there. For AI, it was apparently easier to wrote Pascal code to generate UI rather than edit `.castle-user-interface` JSON files, even though I directed it to try the latter.
