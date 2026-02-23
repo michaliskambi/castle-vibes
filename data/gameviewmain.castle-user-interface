@@ -524,6 +524,7 @@
         ]
       },
       "Name": "MainViewport",
+      "DynamicBatching": true,
       "$Children": [
         {
           "$$ClassName": "TCastleWalkNavigation",

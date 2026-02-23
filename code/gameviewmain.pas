@@ -16,7 +16,7 @@ uses Classes, Generics.Collections,
 
 type
   TSnowFlake = record
-    Transform: TCastleTransform;
+    Transform: TCastleTransformReference;
     Speed: Single;
     DriftPhase: Single;
     DriftSpeed: Single;
@@ -41,6 +41,7 @@ type
     SceneNpc1: TCastleScene;
     SceneNpc2: TCastleScene;
   private
+    SnowTemplate: TCastleTransform;
     SnowFlakes: array [0..399] of TSnowFlake;
     SnowInitialized: Boolean;
     GoblinKillCount: Integer;
@@ -338,25 +339,35 @@ var
   CamPos: TVector3;
 begin
   CamPos := MainViewport.Camera.WorldTranslation;
+
+  { Create a single shared snowflake sphere }
+  SnowTemplate := TCastleTransform.Create(FreeAtStop);
+  Sphere := TCastleSphere.Create(FreeAtStop);
+  Sphere.Radius := 0.05;
+  Sphere.Slices := 4;
+  Sphere.Stacks := 2;
+  Sphere.Color := Vector4(0.95, 0.95, 1.0, 0.85);
+  Sphere.Material := pmUnlit;
+  SnowTemplate.Add(Sphere);
+  SnowTemplate.Collides := false;
+  SnowTemplate.Pickable := false;
+  MainViewport.Items.Add(SnowTemplate);
+
   for I := 0 to High(SnowFlakes) do
   begin
-    Sphere := TCastleSphere.Create(FreeAtStop);
-    Sphere.Radius := 0.04 + Random * 0.03;
-    Sphere.Color := Vector4(0.95, 0.95, 1.0, 0.85);
-    Sphere.Material := pmUnlit;
-
-    SnowFlakes[I].Transform := TCastleTransform.Create(FreeAtStop);
-    SnowFlakes[I].Transform.Add(Sphere);
+    SnowFlakes[I].Transform := TCastleTransformReference.Create(FreeAtStop);
+    SnowFlakes[I].Transform.Reference := SnowTemplate;
+    SnowFlakes[I].Transform.Scale := Vector3(0.8 + Random * 0.6, 0.8 + Random * 0.6, 0.8 + Random * 0.6);
     SnowFlakes[I].Transform.Translation := Vector3(
       CamPos.X + Random * 60 - 30,
       CamPos.Y + Random * 25,
       CamPos.Z + Random * 60 - 30
     );
+    SnowFlakes[I].Transform.Collides := false;
+    SnowFlakes[I].Transform.Pickable := false;
     SnowFlakes[I].Speed := 1.5 + Random * 2.0;
     SnowFlakes[I].DriftPhase := Random * 2 * Pi;
     SnowFlakes[I].DriftSpeed := 0.5 + Random * 1.0;
-    SnowFlakes[I].Transform.Collides := false;
-    SnowFlakes[I].Transform.Pickable := false;
 
     MainViewport.Items.Add(SnowFlakes[I].Transform);
   end;
