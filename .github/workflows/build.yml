@@ -92,7 +92,7 @@ jobs:
     # Releases files release.
     - name: Release Artifacts
       if: ${{ github.ref == 'refs/heads/master' }}
-      run: gh release --repo ${{ github.repository }} upload ${{ env.release_tag }} --clobber *.zip *.tar.gz *.apk
+      run: gh release --repo ${{ github.repository }} upload ${{ env.release_tag }} --clobber *.zip *.tar.gz
       env:
         GH_TOKEN: ${{ github.token }}
 
